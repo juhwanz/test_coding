@@ -1,0 +1,31 @@
+# 직접 구현 연습 목록. 형식: 이름|교재위치|제목
+letters|1단계 03|알파벳 빈도 배열
+sort-points|1단계 04|Comparator 다중 기준 정렬
+freq-map|1단계 05|HashMap 빈도 세기
+parens|1단계 06|스택으로 괄호 검사
+k-smallest|1단계 07|PriorityQueue로 작은 값 k개
+subsets|1단계 08|재귀로 모든 부분집합
+graph-bfs|1단계 09|그래프 BFS 거리
+graph-dfs|1단계 09|DFS로 연결 요소 세기
+grid-bfs|1단계 09|격자 BFS 거리
+permutation|1단계 10|백트래킹 순열 (N과 M 1)
+meetings|1단계 11|그리디 회의실 배정
+lower-bound|1단계 12|이분 탐색 lower bound
+first-true|1단계 12|매개변수 탐색 (최소 가능값)
+prefix-sum|1단계 13|누적합과 구간 합
+window|1단계 14|고정 길이 슬라이딩 윈도우
+shortest-window|1단계 14|투 포인터 가변 윈도우
+make-one|1단계 15|DP 1로 만들기
+gcd-prime|2단계 15-A|최대공약수·최소공배수·소수 판정
+tree-order|2단계 15-B|이진 트리 전위·중위·후위 순회
+dijkstra|2단계 16|다익스트라 최단 거리
+union-find|2단계 17|유니온 파인드와 크루스칼
+topo-sort|2단계 18|위상 정렬 (Kahn)
+rotate|3단계 01|2차원 배열 시계 방향 90도 회전
+combination|3단계 03|백트래킹 조합
+knapsack|3단계 04|0/1 배낭 DP
+lis|3단계 04|LIS 길이 O(N log N)
+last-true|3단계 05|매개변수 탐색 (최대 가능값)
+floyd|3단계 06|플로이드-워셜
+fenwick|3단계 08|펜윅 트리 (점 갱신·구간 합)
+zero-one-bfs|3단계 08|0-1 BFS

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# 핵심 코드 직접 구현 연습 (교재 각 단원의 "코드 예제 · 직접 구현 후 확인").
+# 사용: ./drill              목록과 상태
+#       ./drill 1단계        1단계만
+#       ./drill lower-bound  연습 폴더 만들기 → drills/lower-bound/Drill.java
+# 채점: ./run drills/lower-bound   다시 하기: ./retry drills/lower-bound
+set -euo pipefail
+cd "$(dirname "$0")"
+
+arg=${1:-}
+
+# 이름이 아니면 목록 보기 (인자는 교재 위치 앞부분 필터: 1단계, 2단계, 3단계 …)
+if [ -z "$arg" ] || [ ! -d "drills-src/$arg" ]; then
+  shown=0
+  while IFS='|' read -r name loc title; do
+    case $name in ''|'#'*) continue ;; esac
+    case $loc in "$arg"*) ;; *) continue ;; esac
+    shown=$((shown+1))
+    status="-"
+    [ -f "drills/$name/README.md" ] && status=$(sed -n 's/^- 상태: //p' "drills/$name/README.md")
+    mark=""
+    [ "$status" != "-" ] && mark="  [$status]"
+    printf '%-16s %s  %s%s\n' "$name" "$loc" "$title" "$mark"
+  done < drills-src/list.txt
+  if [ $shown -eq 0 ]; then
+    echo "없는 연습 또는 단계: $arg   (./drill 로 전체 목록)"
+    exit 1
+  fi
+  exit 0
+fi
+
+name=$arg
+dir="drills/$name"
+if [ -d "$dir" ]; then
+  echo "이미 있음: $dir   (다시 하려면 ./retry $dir)"
+  exit 0
+fi
+
+IFS='|' read -r _ loc title <<< "$(grep "^$name|" drills-src/list.txt)"
+mkdir -p "$dir"
+cp "drills-src/$name/Drill.java" "$dir/Drill.java"
+cat > "$dir/README.md" <<EOF
+# $title
+
+- 교재: $loc (코드 예제는 다 쓴 뒤에 열어 본다)
+- 목표: 교재 코드를 보지 않고 15~20분
+- 상태: 미완료
+- 걸린 시간:
+- 헷갈린 곳:
+EOF
+
+echo "만듦: $dir/Drill.java"
+echo "조건 주석을 읽고 메서드를 구현한 뒤 ./run $dir"

@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# 예제로 풀이를 돌려 본다.  사용: ./run <문제폴더> [제한초]
+# 예: ./run stage1/day1/boj24262      (어느 위치에서 실행해도 된다)
+#     ./run . 2                         (문제 폴더 안에서, 예제당 2초 제한)
+# 예제당 기본 제한은 5초. 실행 시간은 JVM 시작 시간이 포함된 참고값이다.
+set -uo pipefail
+
+if [ -z "${1:-}" ] || [ ! -d "$1" ]; then
+  echo "사용: ./run <문제폴더> [제한초]   (예: ./run stage1/day1/boj24262)"
+  exit 1
+fi
+dir=$(cd "$1" && pwd)
+limit=${2:-5}
+root=$(cd "$(dirname "$0")" && pwd)
+
+out=$(mktemp -d)
+trap 'rm -rf "$out"' EXIT
+JAVAC=(javac --release 17 -encoding UTF-8 -d "$out")
+
+now_ms() { perl -MTime::HiRes=time -e 'printf "%d", time*1000'; }
+# 제한 시간 안에 끝나지 않으면 프로그램을 끝내고 종료 코드 124
+with_limit() {
+  perl -e '$t = shift; $p = fork; if (!$p) { exec @ARGV or die "실행 실패: $!\n" }
+    $SIG{ALRM} = sub { kill 9, $p; exit 124 }; alarm $t; waitpid($p, 0);
+    exit($? & 127 ? 128 + ($? & 127) : $? >> 8)' "$limit" "$@"
+}
+# 줄 끝 공백과 마지막 빈 줄은 무시하고 비교한다 (백준 채점과 같은 방식)
+norm() { sed 's/[[:space:]]*$//' | awk '{a[NR]=$0} NF{last=NR} END{for(i=1;i<=last;i++)print a[i]}'; }
+indent() { sed 's/^/    /'; }
+
+if [ -f "$dir/Main.java" ]; then
+  "${JAVAC[@]}" "$dir/Main.java" || { echo "컴파일 에러"; exit 1; }
+  total=0 passed=0
+  for in in "$dir"/input*.txt; do
+    [ -s "$in" ] || continue
+    n=${in##*/input}; n=${n%.txt}
+    exp="$dir/output$n.txt"
+    total=$((total+1))
+    start=$(now_ms)
+    actual=$(with_limit java -cp "$out" Main < "$in" 2> "$out/err")
+    code=$?
+    ms=$(( $(now_ms) - start ))
+    if [ $code -eq 124 ]; then
+      echo "예제 $n: 시간 초과 (${limit}초 넘음)"; continue
+    fi
+    if [ $code -ne 0 ]; then
+      echo "예제 $n: 런타임 에러 (${ms}ms)"; head -5 "$out/err" | indent; continue
+    fi
+    if [ ! -s "$exp" ]; then
+      echo "예제 $n: 기대 출력 없음, 결과만 표시 (${ms}ms)"
+      if [ -z "$actual" ]; then echo "    (출력 없음)"; else printf '%s\n' "$actual" | indent; fi
+      total=$((total-1)); continue
+    fi
+    if [ "$(printf '%s\n' "$actual" | norm)" == "$(norm < "$exp")" ]; then
+      echo "예제 $n: 통과 (${ms}ms)"; passed=$((passed+1))
+    else
+      echo "예제 $n: 실패 (${ms}ms)"
+      echo "  기대:"; norm < "$exp" | indent
+      echo "  실제:"
+      if [ -z "$actual" ]; then echo "    (출력 없음)"; else printf '%s\n' "$actual" | norm | indent; fi
+    fi
+  done
+  if [ $total -eq 0 ]; then
+    echo "비교할 예제가 없다. input1.txt와 output1.txt에 문제의 예제를 붙여 넣는다."
+    exit 1
+  fi
+  echo "$passed/$total 통과"
+  [ $passed -eq $total ]
+elif [ -f "$dir/Drill.java" ]; then
+  # 채점 테스트는 drills-src의 정본을 쓴다 (연습 폴더에 복사하지 않음)
+  test="$root/drills-src/$(basename "$dir")/DrillTest.java"
+  [ -f "$test" ] || { echo "채점 테스트가 없다: $test"; exit 1; }
+  "${JAVAC[@]}" "$root/lib/Check.java" "$dir/Drill.java" "$test" || { echo "컴파일 에러"; exit 1; }
+  start=$(now_ms)
+  with_limit java -cp "$out" DrillTest 2> "$out/err"
+  code=$?
+  ms=$(( $(now_ms) - start ))
+  if [ $code -eq 124 ]; then
+    echo "시간 초과 (${limit}초 넘음) — 큰 입력 검사에서 멈췄다. 복잡도를 확인한다"
+  elif grep -q 'UnsupportedOperationException' "$out/err"; then
+    echo "아직 구현하지 않은 메서드가 있다 (throw new UnsupportedOperationException 줄)"
+  elif [ -s "$out/err" ]; then
+    echo "런타임 에러:"; head -5 "$out/err" | indent
+  fi
+  echo "(${ms}ms)"
+  exit $code
+elif [ -f "$dir/Solution.java" ]; then
+  "${JAVAC[@]}" "$root/lib/Check.java" "$dir/Solution.java" "$dir/Test.java" || { echo "컴파일 에러"; exit 1; }
+  with_limit java -cp "$out" Test
+  code=$?
+  [ $code -eq 124 ] && echo "시간 초과 (${limit}초 넘음)"
+  exit $code
+elif [ -f "$dir/query.sql" ]; then
+  echo "SQL은 여기서 실행하지 않는다. 프로그래머스에서 채점한다."
+else
+  echo "Main.java, Solution.java, query.sql 중 아무것도 없다: $dir"
+  exit 1
+fi

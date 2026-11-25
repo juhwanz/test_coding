@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# 재풀이: 지난 풀이를 attempts/로 옮기고 빈 틀에서 다시 시작한다.
+# 사용: ./retry <문제폴더>     예) ./retry stage1/day4/boj2178
+# 예제 파일(input*.txt, Test.java)은 그대로 둔다.
+set -euo pipefail
+root=$(cd "$(dirname "$0")" && pwd)
+
+if [ -z "${1:-}" ] || [ ! -d "$1" ]; then
+  echo "사용: ./retry <문제폴더>"
+  exit 1
+fi
+dir=$(cd "$1" && pwd)
+
+if [ -f "$dir/Drill.java" ]; then
+  file=Drill.java template=../drills-src/$(basename "$dir")/Drill.java
+elif [ -f "$dir/Main.java" ]; then
+  file=Main.java template=boj-Main.java
+elif [ -f "$dir/Solution.java" ]; then
+  file=Solution.java template=pg-Solution.java
+elif [ -f "$dir/query.sql" ]; then
+  file=query.sql template=sql-query.sql
+else
+  echo "풀이 파일이 없다: $dir"
+  exit 1
+fi
+
+if cmp -s "$dir/$file" "$root/templates/$template"; then
+  echo "$file이 아직 빈 틀이라 옮길 풀이가 없다."
+  exit 0
+fi
+
+mkdir -p "$dir/attempts"
+# .bak으로 바꿔 두어야 ./run과 IDE가 지난 풀이를 같이 컴파일하지 않는다
+backup="$dir/attempts/$(date +%Y-%m-%d_%H%M)_$file.bak"
+mv "$dir/$file" "$backup"
+cp "$root/templates/$template" "$dir/$file"
+
+echo "지난 풀이: ${backup#"$root"/}"
+if [ "$file" = Drill.java ]; then
+  echo "빈 틀에서 다시 시작한다. 끝나면 README의 상태와 걸린 시간을 고친다."
+else
+  echo "빈 틀에서 다시 시작한다. 다 풀면 오답노트.md의 재풀이 칸에 날짜와 결과를 적는다."
+fi

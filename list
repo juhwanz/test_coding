@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# 문제 목록과 진행 상태를 본다.  사용: ./list [교재위치 앞부분]
+# 예: ./list            전체
+#     ./list stage1     1단계만
+#     ./list stage2/A   2단계 A만
+set -euo pipefail
+cd "$(dirname "$0")"
+
+filter=${1:-}
+made=$(find stage1 stage2 stage3 -name README.md 2>/dev/null || true)
+total=0 done_count=0 seen=" "
+
+while IFS='|' read -r path tier site id title; do
+  case $path in ''|'#'*) continue ;; esac
+  case $path in "$filter"*) ;; *) continue ;; esac
+  key=" $site$id "
+  case $seen in *"$key"*) dup=1 ;; *) dup=0; seen="$seen$key"; total=$((total+1)) ;; esac
+  readme=$(printf '%s\n' "$made" | grep "/$site$id/README.md$" | head -1 || true)
+  if [ -n "$readme" ]; then
+    status=$(sed -n 's/^- 상태: //p' "$readme")
+  else
+    status="-"
+  fi
+  if [ $dup -eq 0 ]; then
+    case $status in 혼자\ 성공|힌트|풀이\ 참고) done_count=$((done_count+1)) ;; esac
+  fi
+  mark=""
+  [ "$status" != "-" ] && mark="  [$status]"
+  printf '%-14s %s  %-3s %-7s %s%s\n' "$path" "$tier" "$site" "$id" "$title" "$mark"
+done < problems.txt
+
+echo
+echo "시도 끝낸 문제: $done_count / $total (여러 단계에 나오는 문제는 한 번만 셈)"
