@@ -7,6 +7,8 @@ public class Main {
         StringBuilder sb = new StringBuilder();
 
         // 여기에 풀이
+        br.readLine();
+        sb.append(1).append('\n').append(0);
 
         System.out.print(sb);
     }
